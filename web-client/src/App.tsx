@@ -10,18 +10,11 @@ const API_GATEWAY = "http://localhost:3000";
 function App() {
   const [sala, setSala] = useState<string>("");
   const [salaCriada, setSalaCriada] = useState(false);
+  const [idSala, setIdSala] = useState<number | null>(null);
   const [historico, setHistorico] = useState<string[]>([]);
   const [resultado, setResultado] = useState<string>("");
 
-  const criarSala = () => {
-    if (sala.trim() === "") {
-      alert("Digite um nome de sala!");
-      return;
-    }
-    setSalaCriada(true);
-    fetchHistorico();
-  };
-
+  // ------------------- REST: Histórico -------------------
   const fetchHistorico = async () => {
     try {
       const res = await axios.get(`${API_GATEWAY}/jogo/historico`);
@@ -31,15 +24,37 @@ function App() {
     }
   };
 
-  const jogar = async (jogada: Jogada) => {
+  useEffect(() => {
+    fetchHistorico();
+  }, []);
+
+  // ------------------- SOAP: Criar Sala -------------------
+  const criarSala = async () => {
+    if (!sala.trim()) return alert("Digite um nome de sala!");
     try {
-      const res = await axios.post(`${API_GATEWAY}/jogo/jogar`, { jogada });
-      if (res.data.resultado) {
-        setResultado(res.data.resultado);
-        fetchHistorico();
-      }
+      const res = await axios.post(`${API_GATEWAY}/jogo/soap/criar-sala`, { jogador: sala });
+      setIdSala(res.data.id);
+      setSalaCriada(true);
+      setResultado("");
+      fetchHistorico();
     } catch (err) {
-      console.error("Erro ao jogar:", err);
+      console.error("Erro ao criar sala SOAP:", err);
+    }
+  };
+
+  // ------------------- SOAP: Jogar -------------------
+  const jogar = async (jogada: Jogada) => {
+    if (!idSala) return alert("Sala não criada!");
+    try {
+      const res = await axios.post(`${API_GATEWAY}/jogo/soap/jogar`, {
+        idSala,
+        jogador: sala,
+        jogada,
+      });
+      setResultado(res.data.resultado);
+      fetchHistorico();
+    } catch (err) {
+      console.error("Erro ao jogar SOAP:", err);
     }
   };
 
@@ -50,7 +65,7 @@ function App() {
           <h1 className="text-2xl font-bold mb-4 text-center">Criar Sala</h1>
           <input
             type="text"
-            placeholder="Nome da sala"
+            placeholder="Nome do jogador"
             value={sala}
             onChange={(e) => setSala(e.target.value)}
             className="border rounded p-2 w-full mb-4"
@@ -59,7 +74,7 @@ function App() {
             onClick={criarSala}
             className="bg-blue-500 text-white px-4 py-2 rounded w-full hover:bg-blue-600"
           >
-            Criar
+            Criar Sala
           </button>
         </div>
       ) : (
@@ -80,7 +95,9 @@ function App() {
             </button>
           </div>
 
-          {resultado && <div className="text-center text-lg font-semibold mb-4">{resultado}</div>}
+          {resultado && (
+            <div className="text-center text-lg font-semibold mb-4">{resultado}</div>
+          )}
 
           <div className="border-t pt-2">
             <h2 className="font-bold mb-2">Histórico:</h2>

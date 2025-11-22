@@ -7,28 +7,28 @@
     <artifactId>soap-service</artifactId>
     <version>1.0-SNAPSHOT</version>
     <dependencies>
-        <!-- API JAX-WS -->
         <dependency>
             <groupId>jakarta.xml.ws</groupId>
             <artifactId>jakarta.xml.ws-api</artifactId>
             <version>4.0.0</version>
         </dependency>
-
-        <!-- Implementação Metro -->
         <dependency>
             <groupId>com.sun.xml.ws</groupId>
             <artifactId>rt</artifactId>
             <version>3.0.2</version>
         </dependency>
     </dependencies>
-
     <build>
         <plugins>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.1.0</version>
+                <configuration>
+                    <mainClass>com.jokenpo.Main</mainClass>
+                </configuration>
             </plugin>
         </plugins>
     </build>
+
 </project>

@@ -1,12 +1,28 @@
-const soap = require("soap");
+const soap = require('soap');
+const SOAP_URL = "http://localhost:5000/jokenpo?wsdl"; // URL do seu serviço SOAP
 
-const SOAP_URL = "http://localhost:8080/jokenpo?wsdl";
-
-async function jogarSOAP(jogada) {
+const criarSala = async (jogador1) => {
   const client = await soap.createClientAsync(SOAP_URL);
-  // supondo que a operação se chame "jogar"
-  const [result] = await client.jogarAsync({ jogada });
-  return result;
-}
+  const [res] = await client.criarSalaAsync({ jogador1 });
+  return res;
+};
 
-module.exports = { jogarSOAP };
+const entrarSala = async (idSala, jogador2) => {
+  const client = await soap.createClientAsync(SOAP_URL);
+  const [res] = await client.entrarSalaAsync({ idSala, jogador2 });
+  return res;
+};
+
+const registrarJogada = async (idSala, jogador, jogada) => {
+  const client = await soap.createClientAsync(SOAP_URL);
+  const [res] = await client.registrarJogadaAsync({ idSala, jogador, jogada });
+  return res;
+};
+
+const verResultado = async (idSala) => {
+  const client = await soap.createClientAsync(SOAP_URL);
+  const [res] = await client.verResultadoAsync({ idSala });
+  return res;
+};
+
+module.exports = { criarSala, entrarSala, registrarJogada, verResultado };

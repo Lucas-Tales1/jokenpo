@@ -1,44 +1,69 @@
 const express = require('express');
 const cors = require('cors');
-const { getHistorico, postJogada, jogarSOAP } = require('./services'); // seu arquivo com axios/soap
-const app = express();
-
-app.use(cors());
-app.use(express.json()); // para ler JSON do body
 const helmet = require('helmet');
+
+const { getHistorico, postJogada } = require('./services/restClient');
+const { criarSala, entrarSala, registrarJogada, verResultado } = require('./services/soapClient');
+
+const app = express();
+const PORT = 3000;
+
+// ------------------- MIDDLEWARES -------------------
+app.use(cors());
+app.use(express.json());
 app.use(helmet({ contentSecurityPolicy: false }));
 
-// Rotas REST
-app.get('/jogo/historico', async (req, res) => {
-  try {
-    const historico = await getHistorico();
-    res.json(historico);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+// Middleware simples para tratar erros em funções async
+const asyncHandler = (fn) => (req, res, next) => {
+  Promise.resolve(fn(req, res, next)).catch(next);
+};
+
+// ------------------- ROTAS REST -------------------
+app.get('/jogo/historico', asyncHandler(async (req, res) => {
+  const historico = await getHistorico();
+  res.json(historico);
+}));
+
+app.post('/jogo/jogar', asyncHandler(async (req, res) => {
+  const { jogada } = req.body;
+  const resultado = await postJogada(jogada);
+  res.json(resultado);
+}));
+
+// ------------------- ROTAS SOAP -------------------
+
+// Criar sala
+app.post('/jogo/soap/criar-sala', asyncHandler(async (req, res) => {
+  const { jogador } = req.body;
+  const id = await criarSala(jogador);
+  res.json({ id });
+}));
+
+// Entrar sala
+app.post('/jogo/soap/entrar-sala', asyncHandler(async (req, res) => {
+  const { idSala, jogador } = req.body;
+  const ok = await entrarSala(idSala, jogador);
+  res.json({ ok });
+}));
+
+// Jogar
+app.post('/jogo/soap/jogar', asyncHandler(async (req, res) => {
+  const { idSala, jogador, jogada } = req.body;
+  await registrarJogada(idSala, jogador, jogada);
+  const resultado = await verResultado(idSala);
+  res.json({ resultado });
+}));
+
+// ------------------- ERRO GLOBAL -------------------
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(500).json({ error: err.message || 'Erro interno do servidor' });
 });
 
-app.post('/jogo/jogar', async (req, res) => {
-  try {
-    const { jogada } = req.body;
-    const resultado = await postJogada(jogada);
-    res.json(resultado);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+// ------------------- FAVICON -------------------
+app.get('/favicon.ico', (req, res) => res.sendStatus(204));
 
-// Rota SOAP
-app.post('/jogo/soap', async (req, res) => {
-  try {
-    const { jogada } = req.body;
-    const resultado = await jogarSOAP(jogada);
-    res.json(resultado);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.listen(3000, () => {
-  console.log('API Gateway rodando em http://localhost:3000');
+// ------------------- INICIALIZAÇÃO DO SERVIDOR -------------------
+app.listen(PORT, () => {
+  console.log(`API Gateway rodando em http://localhost:${PORT}`);
 });
