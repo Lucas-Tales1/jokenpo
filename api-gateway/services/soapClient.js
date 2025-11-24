@@ -1,28 +1,40 @@
 const soap = require('soap');
 const SOAP_URL = "http://localhost:5000/jokenpo?wsdl"; // URL do seu serviço SOAP
 
+/*A resposta do client.MethodAsync() é um array onde o primeiro elemento é o resultado.*/
+const extractResult = (result) => {
+  if (Array.isArray(result) && result.length > 0) {
+
+    if (result[0] && typeof result[0].return !== 'undefined') {
+      return result[0].return;
+    }
+    return result[0];
+  }
+  return result;
+};
+
 const criarSala = async (jogador1) => {
   const client = await soap.createClientAsync(SOAP_URL);
-  const [res] = await client.criarSalaAsync({ jogador1 });
-  return res;
+  const response = await client.criarSalaAsync({ arg0: jogador1 });
+  return extractResult(response);
 };
 
 const entrarSala = async (idSala, jogador2) => {
   const client = await soap.createClientAsync(SOAP_URL);
-  const [res] = await client.entrarSalaAsync({ idSala, jogador2 });
-  return res;
+  const response = await client.entrarSalaAsync({ arg0: idSala, arg1: jogador2 });
+  return extractResult(response);
 };
 
 const registrarJogada = async (idSala, jogador, jogada) => {
   const client = await soap.createClientAsync(SOAP_URL);
-  const [res] = await client.registrarJogadaAsync({ idSala, jogador, jogada });
-  return res;
+  const response = await client.registrarJogadaAsync({ arg0: idSala, arg1: jogador, arg2: jogada });
+  return extractResult(response);
 };
 
 const verResultado = async (idSala) => {
   const client = await soap.createClientAsync(SOAP_URL);
-  const [res] = await client.verResultadoAsync({ idSala });
-  return res;
+  const response = await client.verResultadoAsync({ arg0: idSala });
+  return extractResult(response);
 };
 
 module.exports = { criarSala, entrarSala, registrarJogada, verResultado };

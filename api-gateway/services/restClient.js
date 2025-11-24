@@ -16,21 +16,22 @@ const getHistorico = async () => {
   }
 };
 
-// Mock de jogada (pode usar REST POST real se criar no Django)
-const postJogada = async (jogada) => {
-  const opcoes = ["pedra", "papel", "tesoura"];
-  const computador = opcoes[Math.floor(Math.random() * 3)];
-
-  let resultado;
-  if (jogada === computador) resultado = "Empate!";
-  else if (
-    (jogada === "pedra" && computador === "tesoura") ||
-    (jogada === "papel" && computador === "pedra") ||
-    (jogada === "tesoura" && computador === "papel")
-  ) resultado = "Você ganhou!";
-  else resultado = "Computador ganhou!";
-
-  return { resultado: `Você: ${jogada} | Computador: ${computador} -> ${resultado}` };
+// Salva o resultado de uma partida finalizada na API REST
+const salvarPartida = async (partida) => {
+  try {
+    const { jogador1, jogador2, vencedor } = partida;
+    const response = await axios.post(`${REST_SERVICE}/historico/`, {
+      jogador1,
+      jogador2,
+      vencedor,
+    });
+    console.log('Partida salva com sucesso:', response.data);
+    return response.data;
+  } catch (err) {
+    console.error("Erro ao salvar partida no Django REST:", err.message);
+    // Lançar o erro para que o chamador possa tratá-lo
+    throw err;
+  }
 };
 
-module.exports = { getHistorico, postJogada };
+module.exports = { getHistorico, salvarPartida };
