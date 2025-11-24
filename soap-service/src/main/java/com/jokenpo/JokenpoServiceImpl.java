@@ -3,6 +3,7 @@ package com.jokenpo;
 import jakarta.jws.WebService;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Collections;
 
 @WebService(endpointInterface = "com.jokenpo.JokenpoService")
 public class JokenpoServiceImpl implements JokenpoService {
@@ -30,17 +31,20 @@ public class JokenpoServiceImpl implements JokenpoService {
     @Override
     public boolean registrarJogada(int idSala, String jogador, String jogada) {
         Sala sala = salas.get(idSala);
-        if (sala != null) {
-            sala.registrarJogada(jogador, jogada);
-            return true;
-        }
-        return false;
+        if (sala == null) return false;
+        boolean ok = sala.registrarJogada(jogador, jogada);
+        return ok;
     }
 
     @Override
     public String verResultado(int idSala) {
         Sala sala = salas.get(idSala);
-        if (sala != null) return sala.calcularResultado();
-        return "Sala não encontrada";
+        if (sala == null) return "Sala não encontrada";
+        String resultado = sala.calcularResultado();
+        // Após fornecer resultado, permite novo round
+        if (!resultado.equals("Aguardando jogadas")) {
+            sala.novoRoundSeConcluido();
+        }
+        return resultado;
     }
 }

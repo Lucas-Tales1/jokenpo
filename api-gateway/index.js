@@ -42,14 +42,21 @@ app.post('/jogo/soap/criar-sala', asyncHandler(async (req, res) => {
 // Entrar sala
 app.post('/jogo/soap/entrar-sala', asyncHandler(async (req, res) => {
   const { idSala, jogador } = req.body;
-  const ok = await entrarSala(idSala, jogador);
-  res.json({ ok });
+  const sucesso = await entrarSala(idSala, jogador);
+  res.json({ sucesso });
 }));
 
 // Jogar
 app.post('/jogo/soap/jogar', asyncHandler(async (req, res) => {
   const { idSala, jogador, jogada } = req.body;
   await registrarJogada(idSala, jogador, jogada);
+  const resultado = await verResultado(idSala);
+  res.json({ resultado });
+}));
+
+// Ver resultado (polling separado)
+app.post('/jogo/soap/resultado', asyncHandler(async (req, res) => {
+  const { idSala } = req.body;
   const resultado = await verResultado(idSala);
   res.json({ resultado });
 }));
