@@ -2,11 +2,14 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 
-const { getHistorico, postJogada } = require('./services/restClient');
+const { getHistorico, salvarPartida } = require('./services/restClient');
 const { criarSala, entrarSala, registrarJogada, verResultado } = require('./services/soapClient');
 
 const app = express();
 const PORT = 3000;
+
+// Mapa em memória para rastrear jogadores nas salas
+const salasAtivas = new Map();
 
 // ------------------- MIDDLEWARES -------------------
 app.use(cors());
@@ -24,40 +27,79 @@ app.get('/jogo/historico', asyncHandler(async (req, res) => {
   res.json(historico);
 }));
 
-app.post('/jogo/jogar', asyncHandler(async (req, res) => {
-  const { jogada } = req.body;
-  const resultado = await postJogada(jogada);
-  res.json(resultado);
-}));
-
 // ------------------- ROTAS SOAP -------------------
 
 // Criar sala
 app.post('/jogo/soap/criar-sala', asyncHandler(async (req, res) => {
   const { jogador } = req.body;
-  const id = await criarSala(jogador);
-  res.json({ id });
+  if (!jogador) {
+    return res.status(400).json({ error: 'Nome do jogador é obrigatório.' });
+  }
+  const idSala = await criarSala(jogador);
+  // Armazena o primeiro jogador
+  salasAtivas.set(idSala, { jogador1: jogador, jogador2: null });
+  res.json({ id: idSala });
 }));
 
 // Entrar sala
 app.post('/jogo/soap/entrar-sala', asyncHandler(async (req, res) => {
   const { idSala, jogador } = req.body;
-  const sucesso = await entrarSala(idSala, jogador);
-  res.json({ sucesso });
+  if (!idSala || !jogador) {
+    return res.status(400).json({ error: 'ID da sala e nome do jogador são obrigatórios.' });
+  }
+  const ok = await entrarSala(idSala, jogador);
+  if (ok) {
+    // Armazena o segundo jogador
+    const sala = salasAtivas.get(idSala);
+    if (sala) {
+      sala.jogador2 = jogador;
+    }
+  }
+  res.json({ sucesso: ok });
 }));
 
 // Jogar
 app.post('/jogo/soap/jogar', asyncHandler(async (req, res) => {
   const { idSala, jogador, jogada } = req.body;
-  await registrarJogada(idSala, jogador, jogada);
-  const resultado = await verResultado(idSala);
-  res.json({ resultado });
-}));
+  
 
-// Ver resultado (polling separado)
-app.post('/jogo/soap/resultado', asyncHandler(async (req, res) => {
-  const { idSala } = req.body;
+  if (jogada === "check") {
+    const resultado = await verResultado(idSala);
+    return res.json({ resultado });
+  }
+  
+
+  await registrarJogada(idSala, jogador, jogada);
+
+
   const resultado = await verResultado(idSala);
+  
+
+  if (resultado && !resultado.toLowerCase().includes('aguardando')) {
+    const salaInfo = salasAtivas.get(idSala);
+    if (salaInfo) {
+      let vencedor = null; // Default para empate
+      if (resultado.toLowerCase().includes('ganhou')) {
+        // Extrai o nome do vencedor da string de resultado
+        vencedor = resultado.split(' ')[0];
+      }
+      
+      // Monta o objeto da partida para a API REST
+      const partidaParaSalvar = {
+        jogador1: salaInfo.jogador1,
+        jogador2: salaInfo.jogador2,
+        vencedor: vencedor,
+      };
+
+      try {
+        await salvarPartida(partidaParaSalvar);
+        //Limpa a sala da memória após salvar
+        salasAtivas.delete(idSala);
+      } catch (error) {
+        console.error(`Erro ao salvar partida ${idSala}. Ela permanecerá ativa.`, error);
+      }
+    }
+  }
   res.json({ resultado });
 }));
 
