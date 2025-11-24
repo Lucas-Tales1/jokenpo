@@ -2,6 +2,6 @@ from rest_framework import viewsets
 from .models import Partida
 from .serializers import PartidaSerializer
 
-class PartidaViewSet(viewsets.ReadOnlyModelViewSet):
+class PartidaViewSet(viewsets.ModelViewSet):
     queryset = Partida.objects.all().order_by('-data')
     serializer_class = PartidaSerializer
