@@ -34,11 +34,11 @@ Jokenpô é uma aplicação que implementa um jogo de pedra, papel e tesoura (jo
      │   Django/Py    │          │   Java/XML-WS     │
      │ :8000/api      │          │ :8080/soap        │
      └────────────────┘          └───────────────────┘
-             │                            │
-     ┌───────▼────────┐                  │
-     │  Banco de Dados│                  │
-     │  SQLite 3      │                  │
-     └────────────────┘                  │
+             │                            
+     ┌───────▼────────┐                  
+     │  Banco de Dados│                  
+     │  SQLite 3      │                  
+     └────────────────┘                  
 ```
 
 ---
