@@ -33,7 +33,7 @@ const EntrarSala: React.FC = () => {
       />
       <button
         onClick={handleEntrar}
-        className="bg-green-500 text-white w-full py-2 rounded hover:bg-green-600"
+        className="bg-[#940852] text-white w-full py-2 rounded hover:bg-[#6e063d]"
       >
         Entrar
       </button>
