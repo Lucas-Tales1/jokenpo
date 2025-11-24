@@ -1,5 +1,5 @@
 # Jokenpô
-Repositório do trabalho sobre REST e SOAP da disciplina de Desenvolvimento de Sistemas Distribuídos
+Repositório para os trabalhos da disciplina de Desenvolvimento de Sistemas Distribuídos 
 
 ## Comandos
     - rest-service: python manage.py runserver 8000
