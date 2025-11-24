@@ -1,8 +1,176 @@
-# Jokenpô
-Repositório para os trabalhos da disciplina de Desenvolvimento de Sistemas Distribuídos 
+# Jokenpô 
 
-## Comandos
-    - rest-service: python manage.py runserver 8000
-    - soap-service: mvn clean compile exec:java
-    - api-gateway: node index.js
-    - web-client: npm run dev
+Sistema distribuído de Jogo de pedra, papel e tesoura desenvolvido como projeto acadêmico da disciplina de **Desenvolvimento de Sistemas Distribuídos**.
+
+---
+
+## 📋 Visão Geral
+
+Jokenpô é uma aplicação completa que implementa um jogo de pedra, papel e tesoura (jokenpô) em uma arquitetura de sistemas distribuídos com múltiplos serviços e comunicações via REST e SOAP.
+
+**Tecnologias principais:**
+- **Frontend**: React + TypeScript + Vite + Tailwind CSS
+- **API Gateway**: Node.js
+- **REST Service**: Django + Python
+- **SOAP Service**: Java + Jakarta XML-WS
+
+---
+
+## 🏗️ Arquitetura
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Web Client (React)                    │
+│              (http://localhost:5173)                     │
+└────────────────────┬────────────────────────────────────┘
+                     │
+┌────────────────────▼────────────────────────────────────┐
+│              API Gateway (Node.js/Express)               │
+│              (http://localhost:3000)                     │
+└────────────┬────────────────────────────┬────────────────┘
+             │                            │
+     ┌───────▼────────┐          ┌────────▼──────────┐
+     │  REST Service  │          │   SOAP Service    │
+     │   Django/Py    │          │   Java/XML-WS     │
+     │ :8000/api      │          │ :8080/soap        │
+     └────────────────┘          └───────────────────┘
+             │                            │
+     ┌───────▼────────┐                  │
+     │  Banco de Dados│                  │
+     │  SQLite 3      │                  │
+     └────────────────┘                  │
+```
+
+---
+
+## 📁 Estrutura do Projeto
+
+```
+jokenpo/
+├── web-client/           # Frontend React + TypeScript
+│   ├── src/
+│   │   ├── components/   # Componentes React
+│   │   ├── pages/        # Páginas da aplicação
+│   │   ├── services/     # Integração com APIs
+│   │   └── types/        # Tipos TypeScript
+│   └── package.json
+│
+├── api-gateway/          # Gateway de API (Node.js)
+│   ├── index.js          # Servidor Node
+│   ├── services/         # Clientes REST e SOAP
+│   └── package.json
+│
+├── rest_service/         # Serviço REST (Django)
+│   ├── historico/        # App Django com modelos
+│   │   ├── models.py     # Modelo Partida
+│   │   ├── views.py      # Endpoints REST
+│   │   └── urls.py       # Rotas
+│   ├── manage.py
+│   └── db.sqlite3        # Banco de dados
+│
+└── soap-service/         # Serviço SOAP (Java)
+    ├── src/main/java/com/jokenpo/
+    │   ├── JokenpoService.java
+    │   ├── JokenpoServiceImpl.java
+    │   ├── JokenpoServer.java
+    │   └── Main.java
+    └── pom.xml
+```
+
+---
+
+## 🚀 Quick Start
+
+### Pré-requisitos
+- **Node.js** v16+ (para api-gateway e web-client)
+- **Python** 3.8+ (para rest_service)
+- **Java** 11+ (para soap-service)
+- **Maven** (para compilar soap-service)
+
+### Instalação e Execução
+
+#### 1️⃣ **REST Service** (Django - porta 8000)
+```bash
+cd rest_service
+pip install -r requirements.txt  # Se houver requirements.txt
+python manage.py migrate
+python manage.py runserver 8000
+```
+
+#### 2️⃣ **SOAP Service** (Java - porta 8080)
+```bash
+cd soap-service
+mvn clean compile exec:java
+```
+
+#### 3️⃣ **API Gateway** (Node.js - porta 3000)
+```bash
+cd api-gateway
+npm install
+node index.js
+```
+
+#### 4️⃣ **Web Client** (React - porta 5173)
+```bash
+cd web-client
+npm install
+npm run dev
+```
+
+**Acesse a aplicação em:** `http://localhost:5173`
+
+---
+
+## 📡 Serviços
+
+### REST Service (Django)
+- **Porta**: 8000
+- **Função**: Gerenciar histórico de partidas e persistência de dados
+- **Modelo Principal**: `Partida` (jogador1, jogador2, vencedor, data)
+- **Endpoints**:
+  - `GET /api/historico/` - Listar partidas
+  - `POST /api/historico/` - Criar nova partida
+  - `GET /api/historico/<id>/` - Obter detalhes da partida
+
+### SOAP Service (Java)
+- **Porta**: 8080
+- **Função**: Lógica principal do jogo (validar jogadas, determinar vencedor)
+- **Serviços**:
+  - `JokenpoService` - Interface WSDL
+  - `JokenpoServiceImpl` - Implementação
+  - `Sala` - Gerenciar salas de jogo
+
+### API Gateway (Node)
+- **Porta**: 3000
+- **Função**: Intermediar requisições entre cliente e serviços backend
+- **Recursos**:
+  - Roteamento para REST e SOAP
+  - CORS habilitado
+  - Segurança com Helmet
+
+### Web Client (React)
+- **Porta**: 5173 (desenvolvimento) / Build: `dist/`
+- **Função**: Interface de usuário interativa
+- **Features**:
+  - Criação e entrada em salas
+  - Histórico de partidas
+  - Interface 
+
+---
+
+## 🛠️ Comandos Úteis
+
+| Serviço | Comando |
+|---------|---------|
+| REST Service | `python manage.py runserver 8000` |
+| SOAP Service | `mvn clean compile exec:java` |
+| API Gateway | `node index.js` |
+| Web Client (dev) | `npm run dev` |
+
+---
+
+## 👨‍💻 Desenvolvido por
+
+Lucas Tales, Manoel Pinto e Marcos Alexandre - Disciplina de Desenvolvimento de Sistemas Distribuídos
+
+---
