@@ -24,7 +24,7 @@ const CriarSala: React.FC = () => {
       />
       <button
         onClick={handleCriar}
-        className="bg-blue-500 text-white w-full py-2 rounded hover:bg-blue-600"
+        className="bg-[#940852] text-white w-full py-2 rounded hover:bg-[#6e063d]"
       >
         Criar Sala
       </button>
