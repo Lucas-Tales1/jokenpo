@@ -1,12 +1,12 @@
 # Jokenpô 
 
-Sistema distribuído de Jogo de pedra, papel e tesoura desenvolvido como projeto acadêmico da disciplina de **Desenvolvimento de Sistemas Distribuídos**.
+Sistema distribuído de um jogo de pedra, papel e tesoura desenvolvido como projeto acadêmico da disciplina de **Desenvolvimento de Sistemas Distribuídos**.
 
 ---
 
 ## 📋 Visão Geral
 
-Jokenpô é uma aplicação completa que implementa um jogo de pedra, papel e tesoura (jokenpô) em uma arquitetura de sistemas distribuídos com múltiplos serviços e comunicações via REST e SOAP.
+Jokenpô é uma aplicação que implementa um jogo de pedra, papel e tesoura (jokenpô) em uma arquitetura de sistemas distribuídos com múltiplos serviços e comunicações via REST e SOAP.
 
 **Tecnologias principais:**
 - **Frontend**: React + TypeScript + Vite + Tailwind CSS
@@ -92,7 +92,7 @@ jokenpo/
 #### 1️⃣ **REST Service** (Django - porta 8000)
 ```bash
 cd rest_service
-pip install -r requirements.txt  # Se houver requirements.txt
+pip install -r requirements.txt  
 python manage.py migrate
 python manage.py runserver 8000
 ```
