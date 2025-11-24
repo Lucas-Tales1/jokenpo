@@ -13,8 +13,13 @@ export const entrarSala = async (idSala: number, jogador: string) => {
 };
 
 export const jogar = async (idSala: number, jogador: string, jogada: string) => {
-  const res = await axios.post(`${API_GATEWAY}/jogar`, { idSala, jogador, jogada });
-  return res.data.resultado;
+  try {
+    const res = await axios.post(`${API_GATEWAY}/jogar`, { idSala, jogador, jogada });
+    return res.data.resultado;
+  } catch (error) {
+    console.error('Erro na chamada POST /jogar:', error);
+    throw error;
+  }
 };
 
 export const verResultado = async (idSala: number) => {
