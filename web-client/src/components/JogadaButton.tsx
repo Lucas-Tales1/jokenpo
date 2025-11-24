@@ -6,16 +6,31 @@ interface Props {
   onClick: (j: Jogada) => void;
   label: string;
   icon: React.ReactNode;
+  disabled?: boolean;
 }
 
-const JogadaButton: React.FC<Props> = ({ jogada, onClick, label, icon }) => (
-  <button
-    onClick={() => onClick(jogada)}
-    className="flex flex-col items-center bg-gray-200 p-2 rounded hover:bg-gray-300"
-  >
-    {icon}
-    {label}
-  </button>
-);
+const JogadaButton: React.FC<Props> = ({ jogada, onClick, label, icon, disabled = false }) => {
+  const handleClick = () => {
+    console.log(`Botão clicado: ${jogada}`);
+    if (!disabled) {
+      onClick(jogada);
+    }
+  };
+  
+  return (
+    <button
+      onClick={handleClick}
+      disabled={disabled}
+      className={`flex flex-col items-center p-2 rounded transition ${
+        disabled
+          ? "bg-gray-300 text-gray-500 cursor-not-allowed opacity-50"
+          : "bg-gray-200 hover:bg-gray-300 cursor-pointer"
+      }`}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+};
 
 export default JogadaButton;
