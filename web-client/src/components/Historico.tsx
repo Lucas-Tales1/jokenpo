@@ -11,7 +11,7 @@ const Historico: React.FC<Props> = ({ historico }) => (
     <ul className="text-sm max-h-40 overflow-auto">
       {historico.map((h, i) => (
         <li key={i}>
-          {h.jogador} jogou {h.jogada} em {new Date(h.data).toLocaleString()}
+          {h.jogador1} vs {h.jogador2} - {h.vencedor || 'Empate'} em {new Date(h.data).toLocaleString()}
         </li>
       ))}
     </ul>
