@@ -6,7 +6,6 @@ const Resultado: React.FC = () => {
   const navigate = useNavigate();
   
   const resultado = (location.state as any)?.resultado || "Resultado não disponível";
-  const idSala = (location.state as any)?.idSala || null;
   const jogador = (location.state as any)?.jogador || "Jogador";
 
   const handleNovaPartida = () => {
