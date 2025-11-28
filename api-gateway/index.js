@@ -113,6 +113,6 @@ app.use((err, req, res, next) => {
 app.get('/favicon.ico', (req, res) => res.sendStatus(204));
 
 // ------------------- INICIALIZAÇÃO DO SERVIDOR -------------------
-app.listen(PORT, () => {
-  console.log(`API Gateway rodando em http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`API Gateway rodando em http://0.0.0.0:${PORT}`);
 });
