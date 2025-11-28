@@ -8,7 +8,7 @@ const getHistorico = async () => {
   try {
     const res = await axios.get(`${REST_SERVICE}/historico/`);
     return {
-      historico: res.data.map(p => `${p.jogador1} vs ${p.jogador2} - ${p.vencedor || 'Empate'}`)
+      historico: res.data
     };
   } catch (err) {
     console.error("Erro ao buscar histórico do Django REST:", err.message);
