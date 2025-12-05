@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getHistorico } from "../services/restService";
+import ChatGlobal from "../components/ChatGlobal";
 import type { Partida } from "../types";
 
 const Inicio: React.FC = () =>{
@@ -52,6 +53,8 @@ const Inicio: React.FC = () =>{
                 Encontrar sala
                 </button>
               </div>
+
+              <ChatGlobal />
 
               <div className="border-t-2 pt-6">
                 <h2 className="text-2xl font-bold text-[#292931] mb-4">Histórico de Partidas</h2>
