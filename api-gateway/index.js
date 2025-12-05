@@ -5,7 +5,7 @@ const http = require('http');
 const { Server } = require("socket.io");
 
 const { getHistorico, salvarPartida } = require('./services/restClient');
-const { criarSala, entrarSala, registrarJogada, verResultado } = require('./services/soapClient');
+const { criarSala, entrarSala, registrarJogada, verResultado, listarSalasAbertas } = require('./services/soapClient');
 
 const app = express();
 const PORT = 3000;
@@ -61,6 +61,11 @@ io.on('connection', (socket) => {
 app.get('/jogo/historico', asyncHandler(async (req, res) => {
   const historico = await getHistorico();
   res.json(historico);
+}));
+
+app.get('/jogo/salas-abertas', asyncHandler(async (req, res) => {
+  const salas = await listarSalasAbertas();
+  res.json({ salas });
 }));
 
 // ------------------- ROTAS SOAP -------------------
