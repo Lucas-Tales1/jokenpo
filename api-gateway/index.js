@@ -1,8 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
-const http = require('http'); 
-const { Server } = require("socket.io");
+const http = require('http');
+const WebSocket = require('ws'); 
 
 const { getHistorico, salvarPartida } = require('./services/restClient');
 const { criarSala, entrarSala, registrarJogada, verResultado, listarSalasAbertas } = require('./services/soapClient');
@@ -10,8 +10,11 @@ const { criarSala, entrarSala, registrarJogada, verResultado, listarSalasAbertas
 const app = express();
 const PORT = 3000;
 
-// Mapa em memória para rastrear jogadores nas salas
+// Mapa em memória para rastrear jogadores nas salas (SOAP)
 const salasAtivas = new Map();
+
+// Mapa de salas WEB SOCKET → roomId -> Set(sockets)
+const salasWS = new Map();
 
 // ------------------- MIDDLEWARES -------------------
 app.use(cors());
@@ -23,38 +26,66 @@ const asyncHandler = (fn) => (req, res, next) => {
   Promise.resolve(fn(req, res, next)).catch(next);
 };
 
-
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"]
-  }
-});
 
 // ------------------- WEBSOCKET -------------------
-io.on('connection', (socket) => {
-  console.log('Novo cliente conectado via WebSocket:', socket.id);
+const wss = new WebSocket.Server({ server });
 
-  socket.on('joinRoom', (room) => {
-    socket.join(room);
-    console.log(`Cliente ${socket.id} entrou na sala ${room}`);
+wss.on('connection', (ws) => {
+  console.log("Cliente WS conectado");
+
+  ws.on('message', (msg) => {
+    let data;
+    try {
+      data = JSON.parse(msg);
+    } catch (err) {
+      console.log("Mensagem inválida:", msg);
+      return;
+    }
+
+    // ---- JOIN ROOM ----
+    if (data.tipo === "joinRoom") {
+      const room = data.room;
+
+      if (!salasWS.has(room)) {
+        salasWS.set(room, new Set());
+      }
+
+      salasWS.get(room).add(ws);
+      ws.room = room;
+
+      console.log(`Cliente entrou na sala WS ${room}`);
+      return;
+    }
+
+    // ---- ENVIAR MENSAGEM PARA SALA ----
+    if (data.tipo === "enviar_mensagem") {
+      const room = data.sala || data.idSala;
+
+      if (salasWS.has(room)) {
+        for (const client of salasWS.get(room)) {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({
+              tipo: "receber_mensagem",
+              ...data
+            }));
+          }
+        }
+      }
+      return;
+    }
+
   });
 
-  socket.on('entrar_sala', (dados) => {
-    const { idSala, nomeJogador } = dados;
-    socket.join(idSala);
-    console.log(`Jogador ${nomeJogador} entrou na sala ${idSala}`);
-    socket.to(idSala).emit('notificacao', `${nomeJogador} entrou na sala.`);
+  ws.on('close', () => {
+    console.log("Cliente WS desconectado");
+
+    // remover da sala
+    if (ws.room && salasWS.has(ws.room)) {
+      salasWS.get(ws.room).delete(ws);
+    }
   });
 
-  socket.on('enviar_mensagem', (dados) => {
-    io.to(dados.sala || dados.idSala).emit('receber_mensagem', dados);
-  });
-
-  socket.on('disconnect', () => {
-    console.log('Cliente desconectado:', socket.id);
-  });
 });
 
 // ------------------- ROTAS REST -------------------
@@ -77,8 +108,9 @@ app.post('/jogo/soap/criar-sala', asyncHandler(async (req, res) => {
     return res.status(400).json({ error: 'Nome do jogador é obrigatório.' });
   }
   const idSala = await criarSala(jogador);
-  // Armazena o primeiro jogador
+  
   salasAtivas.set(idSala, { jogador1: jogador, jogador2: null });
+
   res.json({ id: idSala });
 }));
 
@@ -88,44 +120,40 @@ app.post('/jogo/soap/entrar-sala', asyncHandler(async (req, res) => {
   if (!idSala || !jogador) {
     return res.status(400).json({ error: 'ID da sala e nome do jogador são obrigatórios.' });
   }
+
   const ok = await entrarSala(idSala, jogador);
   if (ok) {
-    // Armazena o segundo jogador
     const sala = salasAtivas.get(idSala);
     if (sala) {
       sala.jogador2 = jogador;
     }
   }
+
   res.json({ sucesso: ok });
 }));
 
 // Jogar
 app.post('/jogo/soap/jogar', asyncHandler(async (req, res) => {
   const { idSala, jogador, jogada } = req.body;
-  
 
   if (jogada === "check") {
     const resultado = await verResultado(idSala);
     return res.json({ resultado });
   }
-  
 
   await registrarJogada(idSala, jogador, jogada);
 
-
   const resultado = await verResultado(idSala);
-  
 
   if (resultado && !resultado.toLowerCase().includes('aguardando')) {
     const salaInfo = salasAtivas.get(idSala);
+
     if (salaInfo) {
-      let vencedor = null; // Default para empate
+      let vencedor = null;
       if (resultado.toLowerCase().includes('ganhou')) {
-        // Extrai o nome do vencedor da string de resultado
         vencedor = resultado.split(' ')[0];
       }
-      
-      // Monta o objeto da partida para a API REST
+
       const partidaParaSalvar = {
         jogador1: salaInfo.jogador1,
         jogador2: salaInfo.jogador2,
@@ -134,13 +162,13 @@ app.post('/jogo/soap/jogar', asyncHandler(async (req, res) => {
 
       try {
         await salvarPartida(partidaParaSalvar);
-        //Limpa a sala da memória após salvar
         salasAtivas.delete(idSala);
       } catch (error) {
         console.error(`Erro ao salvar partida ${idSala}. Ela permanecerá ativa.`, error);
       }
     }
   }
+
   res.json({ resultado });
 }));
 
