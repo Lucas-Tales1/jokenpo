@@ -33,3 +33,10 @@ export const verResultado = async (idSala: number) => {
   const res = await axios.post(`${API_GATEWAY}/resultado`, { idSala });
   return res.data.resultado;
 };
+
+export const listarSalasAbertas = async () => {
+  const host = window.location.hostname;
+  const API_GATEWAY = `http://${host}:3000/jogo/salas-abertas`;
+  const res = await axios.get(API_GATEWAY);
+  return res.data.salas || [];
+};
