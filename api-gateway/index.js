@@ -1,187 +1,69 @@
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const http = require('http');
-const WebSocket = require('ws'); 
+let ws: WebSocket | null = null;
 
-const { getHistorico, salvarPartida } = require('./services/restClient');
-const { criarSala, entrarSala, registrarJogada, verResultado, listarSalasAbertas } = require('./services/soapClient');
+// Conecta ao servidor WS usando o hostname e porta atual
+export const conectarWS = () => {
+  if (!ws || ws.readyState === WebSocket.CLOSED) {
+    const host = window.location.hostname;
+    const port = window.location.port || "3000";
 
-const app = express();
-const PORT = 3000;
+    ws = new WebSocket(`ws://${host}:${port}`);
 
-// Mapa em memória para rastrear jogadores nas salas (SOAP)
-const salasAtivas = new Map();
+    ws.onopen = () => {
+      console.log("WebSocket conectado:", `ws://${host}:${port}`);
+    };
 
-// Mapa de salas WEB SOCKET → roomId -> Set(sockets)
-const salasWS = new Map();
+    ws.onerror = (err) => {
+      console.error("Erro no WebSocket:", err);
+    };
 
-// ------------------- MIDDLEWARES -------------------
-app.use(cors());
-app.use(express.json());
-app.use(helmet({ contentSecurityPolicy: false }));
-
-// Middleware simples para tratar erros em funções async
-const asyncHandler = (fn) => (req, res, next) => {
-  Promise.resolve(fn(req, res, next)).catch(next);
+    ws.onclose = () => {
+      console.warn("WebSocket fechado");
+    };
+  }
+  return ws;
 };
 
-const server = http.createServer(app);
+// Envia uma mensagem para a sala
+export const enviarMensagemWS = (
+  sala: string,
+  nomeJogador: string,
+  mensagem: string
+) => {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(
+      JSON.stringify({
+        tipo: "enviar_mensagem",
+        sala,
+        nomeJogador,
+        mensagem,
+        timestamp: new Date().toISOString(),
+      })
+    );
+  } else {
+    console.warn("WS não está conectado, mensagem não enviada");
+  }
+};
 
-// ------------------- WEBSOCKET -------------------
-const wss = new WebSocket.Server({ server });
+// Ouve mensagens WS e retorna função para remover listener
+export const ouvirMensagensWS = (callback: (dados: any) => void) => {
+  if (!ws) return () => {};
 
-wss.on('connection', (ws) => {
-  console.log("Cliente WS conectado");
-
-  ws.on('message', (msg) => {
-    let data;
+  const listener = (event: MessageEvent) => {
     try {
-      data = JSON.parse(msg);
-    } catch (err) {
-      console.log("Mensagem inválida:", msg);
-      return;
+      const data = JSON.parse(event.data);
+      callback(data);
+    } catch (e) {
+      console.error("Erro ao interpretar mensagem WS:", e);
     }
+  };
 
-    // ---- JOIN ROOM ----
-    if (data.tipo === "joinRoom") {
-      const room = data.room;
+  ws.addEventListener("message", listener);
 
-      if (!salasWS.has(room)) {
-        salasWS.set(room, new Set());
-      }
+  // Retorna função de remoção
+  return () => ws?.removeEventListener("message", listener);
+};
 
-      salasWS.get(room).add(ws);
-      ws.room = room;
-
-      console.log(`Cliente entrou na sala WS ${room}`);
-      return;
-    }
-
-    // ---- ENVIAR MENSAGEM PARA SALA ----
-    if (data.tipo === "enviar_mensagem") {
-      const room = data.sala || data.idSala;
-
-      if (salasWS.has(room)) {
-        for (const client of salasWS.get(room)) {
-          if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify({
-              tipo: "receber_mensagem",
-              ...data
-            }));
-          }
-        }
-      }
-      return;
-    }
-
-  });
-
-  ws.on('close', () => {
-    console.log("Cliente WS desconectado");
-
-    // remover da sala
-    if (ws.room && salasWS.has(ws.room)) {
-      salasWS.get(ws.room).delete(ws);
-    }
-  });
-
-});
-
-// ------------------- ROTAS REST -------------------
-app.get('/jogo/historico', asyncHandler(async (req, res) => {
-  const historico = await getHistorico();
-  res.json(historico);
-}));
-
-app.get('/jogo/salas-abertas', asyncHandler(async (req, res) => {
-  const salas = await listarSalasAbertas();
-  res.json({ salas });
-}));
-
-// ------------------- ROTAS SOAP -------------------
-
-// Criar sala
-app.post('/jogo/soap/criar-sala', asyncHandler(async (req, res) => {
-  const { jogador } = req.body;
-  if (!jogador) {
-    return res.status(400).json({ error: 'Nome do jogador é obrigatório.' });
-  }
-  const idSala = await criarSala(jogador);
-  
-  salasAtivas.set(idSala, { jogador1: jogador, jogador2: null });
-
-  res.json({ id: idSala });
-}));
-
-// Entrar sala
-app.post('/jogo/soap/entrar-sala', asyncHandler(async (req, res) => {
-  const { idSala, jogador } = req.body;
-  if (!idSala || !jogador) {
-    return res.status(400).json({ error: 'ID da sala e nome do jogador são obrigatórios.' });
-  }
-
-  const ok = await entrarSala(idSala, jogador);
-  if (ok) {
-    const sala = salasAtivas.get(idSala);
-    if (sala) {
-      sala.jogador2 = jogador;
-    }
-  }
-
-  res.json({ sucesso: ok });
-}));
-
-// Jogar
-app.post('/jogo/soap/jogar', asyncHandler(async (req, res) => {
-  const { idSala, jogador, jogada } = req.body;
-
-  if (jogada === "check") {
-    const resultado = await verResultado(idSala);
-    return res.json({ resultado });
-  }
-
-  await registrarJogada(idSala, jogador, jogada);
-
-  const resultado = await verResultado(idSala);
-
-  if (resultado && !resultado.toLowerCase().includes('aguardando')) {
-    const salaInfo = salasAtivas.get(idSala);
-
-    if (salaInfo) {
-      let vencedor = null;
-      if (resultado.toLowerCase().includes('ganhou')) {
-        vencedor = resultado.split(' ')[0];
-      }
-
-      const partidaParaSalvar = {
-        jogador1: salaInfo.jogador1,
-        jogador2: salaInfo.jogador2,
-        vencedor: vencedor,
-      };
-
-      try {
-        await salvarPartida(partidaParaSalvar);
-        salasAtivas.delete(idSala);
-      } catch (error) {
-        console.error(`Erro ao salvar partida ${idSala}. Ela permanecerá ativa.`, error);
-      }
-    }
-  }
-
-  res.json({ resultado });
-}));
-
-// ------------------- ERRO GLOBAL -------------------
-app.use((err, req, res, next) => {
-  console.error(err);
-  res.status(500).json({ error: err.message || 'Erro interno do servidor' });
-});
-
-// ------------------- FAVICON -------------------
-app.get('/favicon.ico', (req, res) => res.sendStatus(204));
-
-// ------------------- INICIALIZAÇÃO DO SERVIDOR -------------------
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`API Gateway rodando em http://0.0.0.0:${PORT}`);
-});
+// Remove listener explicitamente
+export const removerOuvidorWS = (callback: any) => {
+  if (ws) ws.removeEventListener("message", callback);
+};
