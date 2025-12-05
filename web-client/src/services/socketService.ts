@@ -1,13 +1,11 @@
 let ws: WebSocket | null = null;
 let ouvintes: ((dados: any) => void)[] = [];
 
-// Conectar ao servidor WebSocket usando host e porta automáticos
 export function conectarWS() {
   if (ws && ws.readyState === WebSocket.OPEN) return ws;
 
-  // Pega host e porta de onde a página foi carregada
   const host = window.location.hostname;
-  const port = window.location.port; // pega a porta atual do frontend
+  const port = 3000; // porta do backend / WS
   const protocolo = window.location.protocol === "https:" ? "wss" : "ws";
 
   ws = new WebSocket(`${protocolo}://${host}:${port}`);
@@ -28,30 +26,25 @@ export function conectarWS() {
   return ws;
 }
 
-// Enviar mensagem
 export function enviarMensagemWS(room: string, nomeJogador: string, mensagem: string) {
   if (!ws || ws.readyState !== WebSocket.OPEN) {
     console.warn("WS não conectado, não é possível enviar");
     return;
   }
 
-  const payload = {
+  ws.send(JSON.stringify({
     tipo: "enviar_mensagem",
     room,
     nomeJogador,
     mensagem,
     timestamp: new Date().toISOString(),
-  };
-
-  ws.send(JSON.stringify(payload));
+  }));
 }
 
-// Registrar ouvinte
 export function ouvirMensagensWS(callback: (dados: any) => void) {
   ouvintes.push(callback);
 }
 
-// Remover ouvinte
 export function removerOuvidorWS(callback: (dados: any) => void) {
   ouvintes = ouvintes.filter((cb) => cb !== callback);
 }
