@@ -48,13 +48,14 @@ io.on('connection', (socket) => {
     socket.to(idSala).emit('notificacao', `${nomeJogador} entrou na sala.`);
   });
 
-  sicket.on('enviar_mensagem', (dados) => {
-    io.to(dados.idSala).emit('receber_mensagem', dados);
+  socket.on('enviar_mensagem', (dados) => {
+    io.to(dados.sala || dados.idSala).emit('receber_mensagem', dados);
   });
 
   socket.on('disconnect', () => {
     console.log('Cliente desconectado:', socket.id);
-    });
+  });
+});
 
 // ------------------- ROTAS REST -------------------
 app.get('/jogo/historico', asyncHandler(async (req, res) => {
