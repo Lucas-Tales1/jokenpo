@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const http = require('http'); 
+const { Server } = require("socket.io");
 
 const { getHistorico, salvarPartida } = require('./services/restClient');
 const { criarSala, entrarSala, registrarJogada, verResultado } = require('./services/soapClient');
@@ -20,6 +22,39 @@ app.use(helmet({ contentSecurityPolicy: false }));
 const asyncHandler = (fn) => (req, res, next) => {
   Promise.resolve(fn(req, res, next)).catch(next);
 };
+
+
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
+});
+
+// ------------------- WEBSOCKET -------------------
+io.on('connection', (socket) => {
+  console.log('Novo cliente conectado via WebSocket:', socket.id);
+
+  socket.on('joinRoom', (room) => {
+    socket.join(room);
+    console.log(`Cliente ${socket.id} entrou na sala ${room}`);
+  });
+
+  socket.on('entrar_sala', (dados) => {
+    const { idSala, nomeJogador } = dados;
+    socket.join(idSala);
+    console.log(`Jogador ${nomeJogador} entrou na sala ${idSala}`);
+    socket.to(idSala).emit('notificacao', `${nomeJogador} entrou na sala.`);
+  });
+
+  sicket.on('enviar_mensagem', (dados) => {
+    io.to(dados.idSala).emit('receber_mensagem', dados);
+  });
+
+  socket.on('disconnect', () => {
+    console.log('Cliente desconectado:', socket.id);
+    });
 
 // ------------------- ROTAS REST -------------------
 app.get('/jogo/historico', asyncHandler(async (req, res) => {
@@ -113,6 +148,6 @@ app.use((err, req, res, next) => {
 app.get('/favicon.ico', (req, res) => res.sendStatus(204));
 
 // ------------------- INICIALIZAÇÃO DO SERVIDOR -------------------
-app.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`API Gateway rodando em http://0.0.0.0:${PORT}`);
 });
