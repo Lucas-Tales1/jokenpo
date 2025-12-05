@@ -17,4 +17,7 @@ public interface JokenpoService {
 
     @WebMethod
     String verResultado(int idSala);
+
+    @WebMethod
+    String listarSalasAbertas();
 }
