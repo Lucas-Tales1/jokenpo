@@ -37,4 +37,21 @@ const verResultado = async (idSala) => {
   return extractResult(response);
 };
 
-module.exports = { criarSala, entrarSala, registrarJogada, verResultado };
+const listarSalasAbertas = async () => {
+  try {
+    console.log('Tentando conectar ao SOAP em:', SOAP_URL);
+    const client = await soap.createClientAsync(SOAP_URL);
+    console.log('Cliente SOAP criado. Chamando listarSalasAbertasAsync...');
+    
+    // Chama o método com um objeto vazio
+    const response = await client.listarSalasAbertasAsync({});
+    const jsonString = extractResult(response);
+    console.log('Resposta SOAP bruta:', jsonString);
+    return JSON.parse(jsonString).salas || [];
+  } catch (err) {
+    console.error("Erro ao listar salas abertas - Detalhes:", err.message);
+    return [];
+  }
+};
+
+module.exports = { criarSala, entrarSala, registrarJogada, verResultado, listarSalasAbertas };
