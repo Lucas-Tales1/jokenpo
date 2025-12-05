@@ -10,7 +10,7 @@ Jokenpô é uma aplicação que implementa um jogo de pedra, papel e tesoura (jo
 
 **Tecnologias principais:**
 - **Frontend**: React + TypeScript + Vite + Tailwind CSS
-- **API Gateway**: Node.js
+- **API Gateway**: Node.js + Express + WebSocket
 - **REST Service**: Django + Python
 - **SOAP Service**: Java + Jakarta XML-WS
 
@@ -23,10 +23,11 @@ Jokenpô é uma aplicação que implementa um jogo de pedra, papel e tesoura (jo
 │                    Web Client (React)                    │
 │              (http://localhost:5173)                     │
 └────────────────────┬────────────────────────────────────┘
-                     │
+                     │  HTTP + WebSocket
 ┌────────────────────▼────────────────────────────────────┐
-│              API Gateway (Node.js/Express)               │
+│           API Gateway (Node.js/Express + WS)             │
 │              (http://localhost:3000)                     │
+│              (ws://localhost:3000/chat)                  │
 └────────────┬────────────────────────────┬────────────────┘
              │                            │
      ┌───────▼────────┐          ┌────────▼──────────┐
@@ -34,11 +35,7 @@ Jokenpô é uma aplicação que implementa um jogo de pedra, papel e tesoura (jo
      │   Django/Py    │          │   Java/XML-WS     │
      │ :8000/api      │          │ :8080/soap        │
      └────────────────┘          └───────────────────┘
-             │                            
-     ┌───────▼────────┐                  
-     │  Banco de Dados│                  
-     │  SQLite 3      │                  
-     └────────────────┘                  
+                
 ```
 
 ---
@@ -55,7 +52,7 @@ jokenpo/
 │   │   └── types/        # Tipos TypeScript
 │   └── package.json
 │
-├── api-gateway/          # Gateway de API (Node.js)
+├── api-gateway/          # Gateway de API + WebSocket (Node.js)
 │   ├── index.js          # Servidor Node
 │   ├── services/         # Clientes REST e SOAP
 │   └── package.json
@@ -103,7 +100,7 @@ cd soap-service
 mvn clean compile exec:java
 ```
 
-#### 3️⃣ **API Gateway** (Node.js - porta 3000)
+#### 3️⃣ **API Gateway** (Node.js - porta 3000 + WebSocket)
 ```bash
 cd api-gateway
 npm install
@@ -147,6 +144,7 @@ npm run dev
   - Roteamento para REST e SOAP
   - CORS habilitado
   - Segurança com Helmet
+  - Expõe WebSocket
 
 ### Web Client (React)
 - **Porta**: 5173 (desenvolvimento) / Build: `dist/`
