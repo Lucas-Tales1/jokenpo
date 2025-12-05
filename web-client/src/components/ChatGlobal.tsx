@@ -2,8 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import {
   conectarWS,
   enviarMensagemWS,
-  ouvirMensagensWS,
-  removerOuvidorWS
+  ouvirMensagensWS
 } from "../services/socketService";
 import { FiSend } from "react-icons/fi";
 
@@ -43,8 +42,8 @@ const ChatGlobal: React.FC = () => {
       console.log("WS desconectado");
     };
 
-    // Receber mensagens
-    const receber = (dados: any) => {
+    // Registrar ouvinte de mensagens
+    const remover = ouvirMensagensWS((dados) => {
       if (dados.tipo === "receber_mensagem") {
         if (dados.nomeJogador && dados.mensagem) {
           setMensagens((prev) => [
@@ -57,12 +56,11 @@ const ChatGlobal: React.FC = () => {
           ]);
         }
       }
-    };
-
-    ouvirMensagensWS(receber);
+    });
 
     return () => {
-      removerOuvidorWS(receber);
+      // Limpeza do ouvinte
+      remover();
     };
   }, []);
 
@@ -81,11 +79,9 @@ const ChatGlobal: React.FC = () => {
     e.preventDefault();
 
     if (!nomeJogador) return alert("Defina seu nome primeiro!");
-
     if (!inputMensagem.trim()) return;
 
     enviarMensagemWS("chat-global", nomeJogador, inputMensagem);
-
     setInputMensagem("");
   };
 
@@ -118,18 +114,21 @@ const ChatGlobal: React.FC = () => {
     <div className="bg-white rounded-lg shadow-md p-6 mb-8">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold text-[#292931]">Chat Global</h2>
-
-        {/* Status de conexão */}
         <div className="flex items-center gap-2">
-          <div className={`w-3 h-3 rounded-full ${conectado ? "bg-green-500" : "bg-red-500"}`}></div>
-          <span className="text-sm text-gray-600">{conectado ? "Conectado" : "Desconectado"}</span>
+          <div
+            className={`w-3 h-3 rounded-full ${
+              conectado ? "bg-green-500" : "bg-red-500"
+            }`}
+          ></div>
+          <span className="text-sm text-gray-600">
+            {conectado ? "Conectado" : "Desconectado"}
+          </span>
           <span className="text-sm font-semibold text-[#940852] ml-2">
             Olá, {nomeJogador}
           </span>
         </div>
       </div>
 
-      {/* Área de mensagens */}
       <div className="bg-gray-50 border border-gray-200 rounded mb-4 h-64 overflow-y-auto p-4">
         {mensagens.length === 0 ? (
           <p className="text-center text-gray-500 mt-24">
@@ -140,7 +139,9 @@ const ChatGlobal: React.FC = () => {
             {mensagens.map((msg, index) => (
               <div
                 key={index}
-                className={`mb-3 ${msg.nomeJogador === nomeJogador ? "text-right" : "text-left"}`}
+                className={`mb-3 ${
+                  msg.nomeJogador === nomeJogador ? "text-right" : "text-left"
+                }`}
               >
                 <div
                   className={`inline-block max-w-xs px-4 py-2 rounded-lg ${
@@ -149,7 +150,9 @@ const ChatGlobal: React.FC = () => {
                       : "bg-gray-200 text-[#292931] rounded-bl-none"
                   }`}
                 >
-                  <p className="text-xs font-semibold opacity-75">{msg.nomeJogador}</p>
+                  <p className="text-xs font-semibold opacity-75">
+                    {msg.nomeJogador}
+                  </p>
                   <p className="text-sm">{msg.mensagem}</p>
                 </div>
               </div>
@@ -159,7 +162,6 @@ const ChatGlobal: React.FC = () => {
         )}
       </div>
 
-      {/* Input de mensagem */}
       <form onSubmit={handleEnviarMensagem} className="flex gap-2">
         <input
           type="text"
