@@ -2,10 +2,10 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const http = require('http'); 
-const { Server } = require("socket.io");
+const crypto = require('crypto');
 
 const { getHistorico, salvarPartida } = require('./services/restClient');
-const { criarSala, entrarSala, registrarJogada, verResultado, listarSalasAbertas } = require('./services/soapClient');
+const { criarSala, entrarSala, registrarJogada, verResultado } = require('./services/soapClient');
 
 const app = express();
 const PORT = 3000;
@@ -25,47 +25,180 @@ const asyncHandler = (fn) => (req, res, next) => {
 
 
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"]
+
+// ------------------- WEBSOCKET (NATIVO) -------------------
+
+const salas = {}; // Armazena: { idSala: [socket1, socket2] }
+
+server.on('upgrade', (request, socket, head) => {
+  const acceptKey = request.headers['sec-websocket-key'];
+  if (!acceptKey) {
+    socket.write('HTTP/1.1 400 Bad Request\r\n\r\n');
+    socket.destroy();
+    return;
   }
+  const hash = generateAcceptValue(acceptKey);
+
+  const responseHeaders = [
+    'HTTP/1.1 101 Switching Protocols',
+    'Upgrade: websocket',
+    'Connection: Upgrade',
+    `Sec-WebSocket-Accept: ${hash}`
+  ];
+
+  socket.write(responseHeaders.join('\r\n') + '\r\n\r\n');
+
+  socket.on('data', (buffer) => {
+    const message = parseMessage(buffer);
+    if (message) handleMessage(socket, message);
+  });
+
+  socket.on('close', () => {
+    // Lógica simples para remover socket das salas ao desconectar
+    removerSocketDasSalas(socket);
+    console.log('O cliente desconectou.');
+  });
+
+  socket.on('error', (err) => {
+    console.error('WebSocket error:', err.message);
+    removerSocketDasSalas(socket);
+  });
 });
 
-// ------------------- WEBSOCKET -------------------
-io.on('connection', (socket) => {
-  console.log('Novo cliente conectado via WebSocket:', socket.id);
+function generateAcceptValue(acceptKey) {
+  return crypto
+    .createHash('sha1')
+    .update(acceptKey + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11')
+    .digest('base64');
+}
 
-  socket.on('joinRoom', (room) => {
-    socket.join(room);
-    console.log(`Cliente ${socket.id} entrou na sala ${room}`);
-  });
+function parseMessage(buffer) {
+  const firstByte = buffer[0];
+  const opCode = firstByte & 0x0f; // 0x1 texto, 0x9 ping, 0xA pong, 0x8 close
 
-  socket.on('entrar_sala', (dados) => {
-    const { idSala, nomeJogador } = dados;
-    socket.join(idSala);
-    console.log(`Jogador ${nomeJogador} entrou na sala ${idSala}`);
-    socket.to(idSala).emit('notificacao', `${nomeJogador} entrou na sala.`);
-  });
+  if (opCode === 0x8) return null; // close frame
+  if (opCode === 0x9) {
+    // ping: responder com pong
+    return { __ping: true };
+  }
+  if (opCode !== 0x1) return null; // Ignora se não for texto
 
-  socket.on('enviar_mensagem', (dados) => {
-    io.to(dados.sala || dados.idSala).emit('receber_mensagem', dados);
-  });
+  const secondByte = buffer.readUInt8(1);
+  const isMasked = Boolean((secondByte >>> 7) & 0x1);
+  
+  let payloadLength = secondByte & 0x7f;
+  let currentOffset = 2; // CORRIGIDO: atribuição direta (era +=)
 
-  socket.on('disconnect', () => {
-    console.log('Cliente desconectado:', socket.id);
-  });
-});
+  // Tratamento de tamanhos maiores (Frames estendidos)
+  if (payloadLength === 126) {
+    payloadLength = buffer.readUInt16BE(currentOffset);
+    currentOffset += 2;
+  } else if (payloadLength === 127) {
+    // Simplificação: ignoramos mensagens gigantes (>65KB) para este exemplo acadêmico
+    // Para suportar, precisaria ler UInt64BE (2 partes de 32bits)
+    console.log("Mensagem muito grande ignorada");
+    return null;
+  }
+
+  let maskingKey;
+  if (isMasked) {
+    maskingKey = buffer.slice(currentOffset, currentOffset + 4);
+    currentOffset += 4;
+  }
+
+  const payloadData = buffer.slice(currentOffset, currentOffset + payloadLength);
+
+  if (isMasked) {
+    for (let i = 0; i < payloadData.length; i++) {
+      payloadData[i] = payloadData[i] ^ maskingKey[i % 4];
+    }
+  }
+
+  try {
+    return JSON.parse(payloadData.toString('utf8'));
+  } catch (e) {
+    return null;
+  }
+}
+
+function constructFrame(data) {
+  const json = JSON.stringify(data);
+  const payloadBuffer = Buffer.from(json, 'utf8');
+  const payloadLength = payloadBuffer.length;
+
+  let headerBuffer; // CORRIGIDO: Nome da variável unificado
+
+  if (payloadLength < 126) {
+    headerBuffer = Buffer.alloc(2);
+    headerBuffer[1] = payloadLength;
+  } else if (payloadLength < 65536) {
+    headerBuffer = Buffer.alloc(4);
+    headerBuffer[1] = 126;
+    headerBuffer.writeUInt16BE(payloadLength, 2);
+  } else {
+    // Payload muito grande para este exemplo simples (precisaria de 64-bit frame)
+    throw new Error("Payload muito grande para frame simples");
+  }
+
+  headerBuffer[0] = 0x81; // 0x80 (FIN) + 0x01 (Text Opcode)
+
+  return Buffer.concat([headerBuffer, payloadBuffer]);
+}
+
+// --- LÓGICA DE GERENCIAMENTO DE MENSAGENS (Faltava esta função) ---
+function handleMessage(socket, data) {
+  // Trata ping
+  if (data.__ping) {
+    try {
+      const pong = Buffer.from([0x8A, 0x00]); // FIN+PONG sem payload
+      socket.write(pong);
+    } catch {}
+    return;
+  }
+  // data espera ser: { type: 'ENTRAR', idSala: '1', nome: 'Lucas' }
+  // ou: { type: 'MSG', idSala: '1', nome: 'Lucas', texto: 'Olá' }
+
+  if (data.type === 'ENTRAR') {
+    const { idSala } = data;
+    if (!salas[idSala]) salas[idSala] = [];
+    
+    // Adiciona socket à sala se ainda não estiver
+    if (!salas[idSala].includes(socket)) {
+      salas[idSala].push(socket);
+      socket.idSalaAtual = idSala; // Guarda referência no socket para limpeza
+    }
+    console.log(`Usuário entrou no chat da sala ${idSala}`);
+  } 
+  else if (data.type === 'MSG') {
+    const { idSala } = data;
+    const targets = salas[idSala];
+    
+    if (targets) {
+      const frame = constructFrame(data); // Cria o frame binário para envio
+      targets.forEach(client => {
+        // Verifica se a conexão ainda está aberta e escrevível
+        if (client.writable) {
+          client.write(frame);
+        }
+      });
+    }
+  }
+}
+
+function removerSocketDasSalas(socket) {
+  // Se guardamos o id da sala no socket, fica fácil remover
+  if (socket.idSalaAtual && salas[socket.idSalaAtual]) {
+    salas[socket.idSalaAtual] = salas[socket.idSalaAtual].filter(s => s !== socket);
+    if (salas[socket.idSalaAtual].length === 0) {
+      delete salas[socket.idSalaAtual];
+    }
+  }
+}
 
 // ------------------- ROTAS REST -------------------
 app.get('/jogo/historico', asyncHandler(async (req, res) => {
   const historico = await getHistorico();
   res.json(historico);
-}));
-
-app.get('/jogo/salas-abertas', asyncHandler(async (req, res) => {
-  const salas = await listarSalasAbertas();
-  res.json({ salas });
 }));
 
 // ------------------- ROTAS SOAP -------------------
