@@ -29,6 +29,7 @@ const server = http.createServer(app);
 // ------------------- WEBSOCKET (NATIVO) -------------------
 
 const salas = {}; // Armazena: { idSala: [socket1, socket2] }
+const clientesGlobais = new Set(); // todos os sockets conectados (chat global)
 
 server.on('upgrade', (request, socket, head) => {
   const acceptKey = request.headers['sec-websocket-key'];
@@ -48,6 +49,9 @@ server.on('upgrade', (request, socket, head) => {
 
   socket.write(responseHeaders.join('\r\n') + '\r\n\r\n');
 
+  // adiciona no conjunto global
+  clientesGlobais.add(socket);
+
   socket.on('data', (buffer) => {
     const message = parseMessage(buffer);
     if (message) handleMessage(socket, message);
@@ -56,12 +60,14 @@ server.on('upgrade', (request, socket, head) => {
   socket.on('close', () => {
     // Lógica simples para remover socket das salas ao desconectar
     removerSocketDasSalas(socket);
+    clientesGlobais.delete(socket);
     console.log('O cliente desconectou.');
   });
 
   socket.on('error', (err) => {
     console.error('WebSocket error:', err.message);
     removerSocketDasSalas(socket);
+    clientesGlobais.delete(socket);
   });
 });
 
@@ -153,6 +159,14 @@ function handleMessage(socket, data) {
       const pong = Buffer.from([0x8A, 0x00]); // FIN+PONG sem payload
       socket.write(pong);
     } catch {}
+    return;
+  }
+  // Chat global: broadcast para todos os clientes conectados
+  if (data.type === 'MSG_GLOBAL' || !data.idSala) {
+    const frame = constructFrame({ type: 'MSG_GLOBAL', nome: data.nome ?? 'anon', texto: data.texto ?? '' });
+    for (const client of clientesGlobais) {
+      if (client.writable) client.write(frame);
+    }
     return;
   }
   // data espera ser: { type: 'ENTRAR', idSala: '1', nome: 'Lucas' }
@@ -260,14 +274,27 @@ app.post('/jogo/soap/jogar', asyncHandler(async (req, res) => {
   const resultado = await verResultado(idSala);
   
 
-  if (resultado && !resultado.toLowerCase().includes('aguardando')) {
+  // Se a rodada terminou mas a série continua, avisa os clientes da sala para iniciar próxima rodada
+  if (resultado && !resultado.toLowerCase().includes('aguardando') && !resultado.toLowerCase().includes('serie')) {
+    const targets = salas[idSala];
+    if (targets && Array.isArray(targets)) {
+      const frame = constructFrame({ type: 'ROUND', idSala, resultado });
+      targets.forEach(client => { if (client.writable) client.write(frame); });
+    }
+  }
+
+  // Somente finaliza e persiste quando a série terminar (melhor de 3)
+  if (resultado && resultado.toLowerCase().includes('serie')) {
     const salaInfo = salasAtivas.get(idSala);
     if (salaInfo) {
       let vencedor = null; // Default para empate
-      if (resultado.toLowerCase().includes('ganhou')) {
-        // Extrai o nome do vencedor da string de resultado
-        vencedor = resultado.split(' ')[0];
-      }
+      // Extrai o nome após "SERIE: " e antes de " venceu"
+      try {
+        const match = resultado.match(/SERIE:\s(.+?)\svenceu/i);
+        if (match && match[1]) {
+          vencedor = match[1].trim();
+        }
+      } catch {}
       
       // Monta o objeto da partida para a API REST
       const partidaParaSalvar = {
@@ -283,6 +310,12 @@ app.post('/jogo/soap/jogar', asyncHandler(async (req, res) => {
       } catch (error) {
         console.error(`Erro ao salvar partida ${idSala}. Ela permanecerá ativa.`, error);
       }
+    }
+    // Notifica clientes da sala sobre fim da série
+    const targets = salas[idSala];
+    if (targets && Array.isArray(targets)) {
+      const frame = constructFrame({ type: 'SERIE', idSala, resultado });
+      targets.forEach(client => { if (client.writable) client.write(frame); });
     }
   }
   res.json({ resultado });

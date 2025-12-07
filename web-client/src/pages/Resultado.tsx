@@ -7,6 +7,8 @@ const Resultado: React.FC = () => {
   
   const resultado = (location.state as any)?.resultado || "Resultado não disponível";
   const jogador = (location.state as any)?.jogador || "Jogador";
+  const perdeu = Boolean((location.state as any)?.perdeu);
+  const empate = Boolean((location.state as any)?.empate);
 
   const handleNovaPartida = () => {
     navigate("/");
@@ -20,6 +22,17 @@ const Resultado: React.FC = () => {
         <div className="mb-6 p-6 bg-[#fdf1f8] rounded-lg">
           <p className="text-2xl font-bold text-[#6e063d]">{resultado}</p>
         </div>
+
+        {perdeu && !empate && (
+          <div className="mb-4 p-4 bg-yellow-100 text-yellow-800 rounded">
+            <p className="text-sm">Você perdeu a série. Mais sorte na próxima!</p>
+          </div>
+        )}
+        {empate && (
+          <div className="mb-4 p-4 bg-blue-100 text-blue-800 rounded">
+            <p className="text-sm">Série empatada! Boa partida de ambos.</p>
+          </div>
+        )}
 
         <p className="text-[#292931] mb-4">Você jogou como: <strong>{jogador}</strong></p>
         

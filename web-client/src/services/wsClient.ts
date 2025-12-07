@@ -8,6 +8,7 @@ export class WsClient {
   private onOpenCb?: () => void;
   private onCloseCb?: () => void;
   private pingInterval?: number;
+  private connected = false;
 
   constructor(url = 'ws://localhost:3000') {
     this.url = url;
@@ -17,6 +18,7 @@ export class WsClient {
     if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) return;
     this.ws = new WebSocket(this.url);
     this.ws.onopen = () => {
+      this.connected = true;
       // keepalive ping each 25s
       this.pingInterval = window.setInterval(() => {
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
@@ -36,6 +38,7 @@ export class WsClient {
       }
     };
     this.ws.onclose = () => {
+      this.connected = false;
       if (this.pingInterval) window.clearInterval(this.pingInterval);
       this.onCloseCb && this.onCloseCb();
     };
@@ -59,4 +62,14 @@ export class WsClient {
   }
 
   close() { this.ws?.close(); }
+
+  isConnected() { return this.connected; }
+
+  joinGlobal(nome: string) {
+    this.send({ type: 'ENTRAR', idSala: '', nome });
+  }
+
+  sendGlobal(nome: string, texto: string) {
+    this.send({ type: 'MSG_GLOBAL', idSala: '', nome, texto });
+  }
 }

@@ -37,15 +37,15 @@ export default function Chat({ idSala, nome }: Props) {
   };
 
   return (
-    <div style={{ border: '1px solid #ddd', borderRadius: 8, padding: 12 }}>
+    <div style={{ border: '1px solid #ddd', borderRadius: 8, padding: 12, position: 'relative', zIndex: 2 }}>
       <h3>Chat da sala {idSala}</h3>
-      <div style={{ maxHeight: 200, overflowY: 'auto', marginBottom: 8, background: '#fafafa', padding: 8 }}>
+      <div style={{ maxHeight: 200, overflowY: 'auto', marginBottom: 8, background: '#fafafa', padding: 8, pointerEvents: 'auto' }}>
         {messages.length === 0 && <div style={{ color: '#888' }}>Nenhuma mensagem ainda.</div>}
         {messages.map((m, i) => (
           <div key={i}><strong>{m.nome}:</strong> {m.texto}</div>
         ))}
       </div>
-      <div style={{ display: 'flex', gap: 8 }}>
+      <div style={{ display: 'flex', gap: 8, pointerEvents: 'auto', position: 'relative', zIndex: 3 }}>
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
