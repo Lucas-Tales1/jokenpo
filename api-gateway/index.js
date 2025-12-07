@@ -232,6 +232,17 @@ app.post('/jogo/soap/entrar-sala', asyncHandler(async (req, res) => {
   res.json({ sucesso: ok });
 }));
 
+// Listar salas ativas (abertas)
+app.get('/jogo/soap/salas', asyncHandler(async (req, res) => {
+  const lista = Array.from(salasAtivas.entries()).map(([idSala, info]) => ({
+    id: idSala,
+    jogador1: info.jogador1,
+    jogador2: info.jogador2,
+    aberta: !info.jogador2,
+  }));
+  res.json({ salas: lista });
+}));
+
 // Jogar
 app.post('/jogo/soap/jogar', asyncHandler(async (req, res) => {
   const { idSala, jogador, jogada } = req.body;

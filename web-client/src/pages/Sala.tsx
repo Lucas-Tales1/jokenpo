@@ -6,6 +6,7 @@ import { GiPaper, GiRock, GiScissors } from "react-icons/gi";
 import JogadaButton from "../components/JogadaButton";
 import { type Jogada } from "../types";
 import { jogar } from "../services/soapService";
+import Chat from "../components/Chat";
 
 const Sala: React.FC = () => {
   const { idSala } = useParams<{ idSala: string }>();
@@ -137,6 +138,12 @@ const Sala: React.FC = () => {
         {jogadaRealizada && resultado && resultado.toLowerCase().includes("aguardando") && (
           <div className="text-center p-4 bg-[#D6CEB5] rounded mb-4">
             <p className="text-sm text-[#292931]">Aguardando a jogada do outro jogador...</p>
+          </div>
+        )}
+        {/* Chat da sala */}
+        {idSala && (
+          <div className="mt-4">
+            <Chat idSala={String(idSala)} nome={String(jogador)} />
           </div>
         )}
       </div>

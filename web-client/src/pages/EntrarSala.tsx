@@ -6,7 +6,8 @@ import { FiRefreshCw } from "react-icons/fi";
 interface Sala {
   id: number;
   jogador1: string;
-  status: string;
+  jogador2?: string | null;
+  aberta: boolean;
 }
 
 const EntrarSala: React.FC = () => {
@@ -97,8 +98,8 @@ const EntrarSala: React.FC = () => {
               <div className="bg-linear-to-r from-[#940852] to-[#6e063d] p-6 text-white">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-2xl font-bold">Sala #{sala.id}</h2>
-                  <span className="bg-green-500 text-white text-xs font-semibold px-3 py-1 rounded-full">
-                    {sala.status}
+                  <span className={`text-xs font-semibold px-3 py-1 rounded-full ${sala.aberta ? 'bg-green-500' : 'bg-yellow-500'}`}>
+                    {sala.aberta ? 'Aberta' : 'Ocupada'}
                   </span>
                 </div>
                 
@@ -108,8 +109,8 @@ const EntrarSala: React.FC = () => {
                     <p className="text-lg font-semibold">{sala.jogador1}</p>
                   </div>
                   <div>
-                    <p className="text-sm opacity-75">Aguardando</p>
-                    <p className="text-lg font-semibold">Segundo jogador</p>
+                    <p className="text-sm opacity-75">Jogador 2</p>
+                    <p className="text-lg font-semibold">{sala.jogador2 ?? (sala.aberta ? 'Aguardando...' : '—')}</p>
                   </div>
                 </div>
               </div>
@@ -118,9 +119,10 @@ const EntrarSala: React.FC = () => {
                 {jogador ? (
                   <button
                     onClick={() => handleEntrarSala(sala.id)}
-                    className="w-full bg-[#940852] text-white py-3 rounded-lg hover:bg-[#6e063d] font-semibold transition-colors"
+                    disabled={!sala.aberta}
+                    className={`w-full py-3 rounded-lg font-semibold transition-colors ${sala.aberta ? 'bg-[#940852] text-white hover:bg-[#6e063d]' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
                   >
-                    Entrar como {jogador}
+                    {sala.aberta ? `Entrar como ${jogador}` : 'Sala ocupada'}
                   </button>
                 ) : (
                   <button

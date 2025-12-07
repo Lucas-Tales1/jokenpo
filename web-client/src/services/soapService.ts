@@ -35,8 +35,7 @@ export const verResultado = async (idSala: number) => {
 };
 
 export const listarSalasAbertas = async () => {
-  const host = window.location.hostname;
-  const API_GATEWAY = `http://${host}:3000/jogo/salas-abertas`;
-  const res = await axios.get(API_GATEWAY);
+  const API_GATEWAY = getApiGatewayUrl();
+  const res = await axios.get(`${API_GATEWAY}/salas`);
   return res.data.salas || [];
 };
