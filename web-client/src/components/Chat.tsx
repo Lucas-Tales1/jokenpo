@@ -6,7 +6,7 @@ type Props = { idSala: string; nome: string };
 export default function Chat({ idSala, nome }: Props) {
   const [messages, setMessages] = useState<Array<{ nome: string; texto: string }>>([]);
   const [input, setInput] = useState('');
-  const client = useMemo(() => new WsClient(), []);
+  const client = useMemo(() => new WsClient(`ws://${window.location.hostname}:3000`), []);
   const joinedRef = useRef(false);
 
   useEffect(() => {

@@ -4,7 +4,7 @@ import { WsClient } from '../services/wsClient';
 type Props = { nome: string };
 
 export default function GlobalChat({ nome }: Props) {
-  const client = useMemo(() => new WsClient(), []);
+  const client = useMemo(() => new WsClient(`ws://${window.location.hostname}:3000`), []);
   const [messages, setMessages] = useState<Array<{ nome: string; texto: string }>>([]);
   const [input, setInput] = useState('');
   const [connected, setConnected] = useState(false);
