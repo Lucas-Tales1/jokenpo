@@ -1,5 +1,5 @@
-com/jokenpo/JokenpoServer.class
-com/jokenpo/JokenpoServiceImpl.class
-com/jokenpo/Main.class
-com/jokenpo/Sala.class
-com/jokenpo/JokenpoService.class
+com\jokenpo\Main.class
+com\jokenpo\JokenpoServer.class
+com\jokenpo\JokenpoServiceImpl.class
+com\jokenpo\JokenpoService.class
+com\jokenpo\Sala.class

@@ -1,8 +1,14 @@
 # Node.js
-
 node_modules/
 
 # Python
 venv/
+env/
 **pycache**/
 *.pyc
+
+# Java
+
+*.class
+.jar
+
