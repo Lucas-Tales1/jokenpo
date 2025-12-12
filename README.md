@@ -20,21 +20,30 @@ Jokenpô é uma aplicação que implementa um jogo de pedra, papel e tesoura (jo
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                    Web Client (React)                    │
-│              (http://localhost:5173)                     │
+│                    Web Client (React)                   │
+│              (http://localhost:5173)                    │
 └────────────────────┬────────────────────────────────────┘
                      │  HTTP + WebSocket
 ┌────────────────────▼────────────────────────────────────┐
-│           API Gateway (Node.js/Express + WS)             │
-│              (http://localhost:3000)                     │
-│              (ws://localhost:3000/chat)                  │
-└────────────┬────────────────────────────┬────────────────┘
-             │                            │
-     ┌───────▼────────┐          ┌────────▼──────────┐
-     │  REST Service  │          │   SOAP Service    │
-     │   Django/Py    │          │   Java/XML-WS     │
-     │ :8000/api      │          │ :8080/soap        │
-     └────────────────┘          └───────────────────┘
+│           API Gateway (Node.js/Express + WS)            │
+│              (http://localhost:3000)                    │
+│              (ws://localhost:3000/chat)                 │
+└────────────┬────────────────────────┬───────────────────┘
+             │                        │
+             │ HTTP/REST              │ SOAP
+     ┌───────▼────────┐       ┌───────▼───────────┐
+     │  REST Service  │       │   SOAP Service    │
+     │   Django/Py    │       │   Java/XML-WS     │
+     │ :8000/api      │       │ :8080/soap        │
+     └───────┬────────┘       └───────┬───────────┘
+             │                        │
+             │        Eventos (publish/consume)
+             │                        │
+      ┌──────▼────────────────────────▼────────┐
+      │               RabbitMQ                 │
+      │    (Exchanges + Queues de eventos)     │
+      │  Notificações | Resultados | Histórico │
+      └────────────────────────────────────────┘
                 
 ```
 
