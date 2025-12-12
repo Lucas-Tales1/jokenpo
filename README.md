@@ -156,6 +156,14 @@ npm run dev
 
 ---
 
+## 📨 Fila de mensagens (RabbitMQ)
+
+- **Função**: troca de eventos entre serviços (notificações de partidas, chat, resultados).
+- **Implementação**: produtor/cliente em Java ([soap-service/src/main/java/com/jokenpo/rabbitmq/EventPublisher.java](soap-service/src/main/java/com/jokenpo/rabbitmq/EventPublisher.java#L1), [soap-service/src/main/java/com/jokenpo/rabbitmq/RabbitMQClient.java](soap-service/src/main/java/com/jokenpo/rabbitmq/RabbitMQClient.java#L1)) e consumidor em Python ([rest_service/historico/consumer.py](rest_service/historico/consumer.py#L1)).
+- **Observação**: o API Gateway e os serviços publicam eventos em filas/exchanges; consumidores processam eventos para atualizar o histórico e sincronizar o estado das salas.
+
+---
+
 ## 🛠️ Comandos Úteis
 
 | Serviço | Comando |
