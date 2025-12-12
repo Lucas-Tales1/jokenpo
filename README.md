@@ -53,34 +53,39 @@ Jokenpô é uma aplicação que implementa um jogo de pedra, papel e tesoura (jo
 
 ```
 jokenpo/
-├── web-client/           # Frontend React + TypeScript
+├── web-client/                           # Frontend React + TypeScript
 │   ├── src/
-│   │   ├── components/   # Componentes React
-│   │   ├── pages/        # Páginas da aplicação
-│   │   ├── services/     # Integração com APIs
-│   │   └── types/        # Tipos TypeScript
+│   │   ├── components/                   # Componentes React
+│   │   ├── pages/                        # Páginas da aplicação
+│   │   ├── services/                     # Integração com APIs
+│   │   └── types/                        # Tipos TypeScript
 │   └── package.json
 │
-├── api-gateway/          # Gateway de API + WebSocket (Node.js)
-│   ├── index.js          # Servidor Node
-│   ├── services/         # Clientes REST e SOAP
+├── api-gateway/                          # Gateway de API + WebSocket (Node.js)
+│   ├── index.js                          # Servidor Node
+│   ├── services/                         # Clientes REST e SOAP
 │   └── package.json
 │
-├── rest_service/         # Serviço REST (Django)
-│   ├── historico/        # App Django com modelos
-│   │   ├── models.py     # Modelo Partida
-│   │   ├── views.py      # Endpoints REST
-│   │   └── urls.py       # Rotas
+├── rest_service/                         # Serviço REST (Django)
+│   ├── historico/
+│   │   ├── models.py                     # Modelo Partida
+│   │   ├── views.py                      # Endpoints REST
+│   │   ├── urls.py                       # Rotas
+│   │   └── consumer.py                   # Consumidor RabbitMQ (Python)
 │   ├── manage.py
-│   └── db.sqlite3        # Banco de dados
+│   └── db.sqlite3                        # Banco de dados
 │
-└── soap-service/         # Serviço SOAP (Java)
+└── soap-service/                         # Serviço SOAP (Java)
     ├── src/main/java/com/jokenpo/
     │   ├── JokenpoService.java
     │   ├── JokenpoServiceImpl.java
     │   ├── JokenpoServer.java
-    │   └── Main.java
+    │   ├── Main.java
+    │   └── rabbitmq/                     # Publicador e cliente RabbitMQ
+    │       ├── EventPublisher.java
+    │       └── RabbitMQClient.java
     └── pom.xml
+
 ```
 
 ---
